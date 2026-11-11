@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' data: blob:">
+  <title>Folio</title>
+  <link rel="stylesheet" href="../../node_modules/pdfjs-dist/web/pdf_viewer.css">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="renderer.js"></script>
+</head>
+<body class="no-doc">
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <defs>
+      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+      <symbol id="i-open" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+      <symbol id="i-spread" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="1"/><rect x="13" y="5" width="8" height="14" rx="1"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+      <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16z" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="chrome">
+    <div class="tabstrip" id="tabstrip" role="tablist" aria-label="Open documents"></div>
+
+    <div class="toolbar" role="toolbar" aria-label="Document tools">
+      <div class="group">
+        <button id="btn-sidebar" class="icon-btn doc-only" title="Show or hide sidebar (F4)" aria-pressed="true"><svg><use href="#i-sidebar"/></svg></button>
+        <button id="btn-open" class="btn" title="Open a PDF (Ctrl+O)"><svg><use href="#i-open"/></svg><span>Open</span></button>
+      </div>
+
+      <div class="group doc-only">
+        <button id="btn-prev" class="icon-btn" title="Previous page"><svg><use href="#i-up"/></svg></button>
+        <div class="folio">
+          <input id="page-input" type="text" inputmode="numeric" autocomplete="off" aria-label="Page number">
+          <span id="page-count">of 0</span>
+        </div>
+        <button id="btn-next" class="icon-btn" title="Next page"><svg><use href="#i-down"/></svg></button>
+      </div>
+
+      <div class="group doc-only">
+        <button id="btn-zoom-out" class="icon-btn" title="Zoom out (Ctrl+−)"><svg><use href="#i-minus"/></svg></button>
+        <select id="zoom-select" aria-label="Zoom">
+          <option value="auto">Automatic</option>
+          <option value="page-fit">Fit page</option>
+          <option value="page-width">Fit width</option>
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+          <option value="2">200%</option>
+          <option value="3">300%</option>
+          <option value="4">400%</option>
+          <option value="custom" data-custom hidden>100%</option>
+        </select>
+        <button id="btn-zoom-in" class="icon-btn" title="Zoom in (Ctrl+=)"><svg><use href="#i-plus"/></svg></button>
+      </div>
+
+      <div class="group doc-only">
+        <button id="btn-rotate" class="icon-btn" title="Rotate pages clockwise (Ctrl+R)"><svg><use href="#i-rotate"/></svg></button>
+        <button id="btn-spread" class="icon-btn" title="Two-page view" aria-pressed="false"><svg><use href="#i-spread"/></svg></button>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="group">
+        <button id="btn-find" class="icon-btn doc-only" title="Find in document (Ctrl+F)"><svg><use href="#i-search"/></svg></button>
+        <button id="btn-night" class="icon-btn" title="Dim pages for night reading" aria-pressed="false"><svg><use href="#i-moon"/></svg></button>
+        <button id="btn-theme" class="icon-btn" title="App theme: System"><svg><use href="#i-theme"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside id="sidebar" class="sidebar" aria-label="Sidebar">
+      <div class="sidebar-tabs" role="tablist">
+        <button class="sidebar-tab" role="tab" data-panel="thumbs" aria-selected="true">Pages</button>
+        <button class="sidebar-tab" role="tab" data-panel="outline" aria-selected="false">Contents</button>
+      </div>
+      <div id="panel-thumbs" class="panel" role="tabpanel" aria-label="Page thumbnails"></div>
+      <div id="panel-outline" class="panel" role="tabpanel" aria-label="Contents" hidden></div>
+    </aside>
+
+    <main class="stage">
+      <div id="viewerContainer" tabindex="0" aria-label="Document">
+        <div id="viewer" class="pdfViewer"></div>
+      </div>
+
+      <div id="findbar" class="findbar" role="search" hidden>
+        <input id="find-input" type="text" placeholder="Find in document" aria-label="Find in document" autocomplete="off" spellcheck="false">
+        <span id="find-count" class="find-count" aria-live="polite"></span>
+        <button id="find-prev" class="icon-btn" title="Previous match (Shift+Enter)"><svg><use href="#i-up"/></svg></button>
+        <button id="find-next" class="icon-btn" title="Next match (Enter)"><svg><use href="#i-down"/></svg></button>
+        <button id="find-close" class="icon-btn" title="Close (Esc)"><svg><use href="#i-close"/></svg></button>
+      </div>
+
+      <section id="empty" class="empty">
+        <div class="stack" aria-hidden="true">
+          <div class="sheet"></div>
+          <div class="sheet"></div>
+          <div class="sheet"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <h1>Open a PDF</h1>
+        <p>Drag files onto this window, or press <kbd>Ctrl</kbd> + <kbd>O</kbd>.</p>
+        <button id="btn-open-empty" class="btn-primary">Open a PDF</button>
+      </section>
+    </main>
+  </div>
+
+  <div id="drop-overlay" class="drop-overlay" hidden><div>Drop PDFs to open them</div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="password-dialog" class="dialog">
+    <h2 id="pw-title">This PDF is password protected</h2>
+    <p id="pw-hint">Enter the password to open it.</p>
+    <input id="pw-input" type="password" aria-label="Password" autocomplete="off">
+    <div class="dialog-actions">
+      <button id="pw-cancel" class="btn">Cancel</button>
+      <button id="pw-ok" class="btn-primary">Open</button>
+    </div>
+  </dialog>
+</body>
+</html>
